@@ -1,35 +1,55 @@
+<script setup lang="ts">
+import { ref } from "vue";
+import { useKeyPressed } from "@/stores/keyPressed";
+import { useDigitsLines, DigitState, LineState } from "@/stores/digitsLines";
+
+const digitsStore = useDigitsLines();
+const { digitsLines, setCurrentKeyState, refreshDigitsLines } = digitsStore;
+const enterWaiting = ref(false);
+
+(window as any).addEventListener("keypress", (e: any) => {
+  if (e.key === "Enter" && enterWaiting.value === true) {
+    enterWaiting.value = false;
+    refreshDigitsLines();
+    return;
+  }
+
+  const store = useKeyPressed();
+  const { setKeyPressed } = store;
+  setKeyPressed(e.key);
+  if (setCurrentKeyState(e.key)) {
+    enterWaiting.value = true;
+  }
+});
+</script>
+
 <template>
   <div class="digits-viewer">
     <div class="digits-viewer__title">
       <h3>Keys to press</h3>
       <hr />
     </div>
-    <div class="digits-viewer__digits current-line">
-      <span class="key success">1</span>
-      <span class="key success">2</span>
-      <span class="key failed">+</span>
-      <span class="key current">8</span>
-      <span class="key">9</span>
-      <span class="key">4</span>
-      <span class="key">.</span>
-      <span class="key">6</span>
-      <span class="key">/</span>
-      <span class="key">7</span>
-      <span class="key">&crarr;</span>
-    </div>
-    <div class="digits-viewer__digits">
-      <span class="key">5</span>
-      <span class="key">6</span>
-      <span class="key">9</span>
-      <span class="key">-</span>
-      <span class="key">2</span>
-      <span class="key">2</span>
-      <span class="key">3</span>
-      <span class="key">*</span>
-      <span class="key">7</span>
-      <span class="key">8</span>
-      <span class="key">&crarr;</span>
-    </div>
+    <ul class="digits-viewer__digits current-line">
+      <li
+        v-for="key in digitsLines[LineState.current]"
+        key="key"
+        class="key"
+        :class="{
+          current: key.state === DigitState.current,
+          success: key.state === DigitState.success,
+          failed: key.state === DigitState.failed,
+        }"
+      >
+        {{ key.code.constructor === Array ? key.code[0] : key.code }}
+      </li>
+      <li class="key" :class="{ current: enterWaiting }">&crarr;</li>
+    </ul>
+    <ul class="digits-viewer__digits">
+      <li v-for="key in digitsLines[LineState.next]" class="key">
+        {{ key.code.constructor === Array ? key.code[0] : key.code }}
+      </li>
+      <li class="key">&crarr;</li>
+    </ul>
   </div>
 </template>
 
@@ -42,6 +62,8 @@
     color: var(--color-text)
     margin-bottom: 30px
   &__digits
+    list-style-type: none
+    padding: 0
     .key
       display: inline-block
       font-family: "Gill Sans", "Gill Sans MT", Calibri, "Trebuchet MS", sans-serif
