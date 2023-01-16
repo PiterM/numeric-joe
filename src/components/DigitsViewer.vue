@@ -1,22 +1,29 @@
 <script setup lang="ts">
-import { ref } from "vue";
-import { useKeyPressed } from "@/stores/keyPressed";
-import { useDigitsLines, DigitState, LineState } from "@/stores/digitsLines";
+import { ref, computed } from "vue";
+import { useDigitsLines, DigitState } from "@/stores/digitsLines";
 
 const digitsStore = useDigitsLines();
-const { digitsLines, setCurrentKeyState, refreshDigitsLines } = digitsStore;
+const { setCurrentKeyState, refreshDigitsLines, refreshDigitsLinesWithSound } =
+  digitsStore;
+
+const currentDigitsMap = computed(() => digitsStore.currentDigitsMap);
+const nextDigitsMap = computed(() => digitsStore.nextDigitsMap);
+
 const enterWaiting = ref(false);
 
-(window as any).addEventListener("keypress", (e: any) => {
+(window as any).addEventListener("keypress", (e: KeyboardEvent) => {
   if (e.key === "Enter" && enterWaiting.value === true) {
+    enterWaiting.value = false;
+    refreshDigitsLinesWithSound();
+    return;
+  }
+
+  if (e.key === "q") {
     enterWaiting.value = false;
     refreshDigitsLines();
     return;
   }
 
-  const store = useKeyPressed();
-  const { setKeyPressed } = store;
-  setKeyPressed(e.key);
   if (setCurrentKeyState(e.key)) {
     enterWaiting.value = true;
   }
@@ -26,27 +33,27 @@ const enterWaiting = ref(false);
 <template>
   <div class="digits-viewer">
     <div class="digits-viewer__title">
-      <h3>Keys to press</h3>
+      <h3>Keys to press (press Q to skip a line)</h3>
       <hr />
     </div>
     <ul class="digits-viewer__digits current-line">
       <li
-        v-for="key in digitsLines[LineState.current]"
+        v-for="[key, value] in currentDigitsMap"
         key="key"
         class="key"
         :class="{
-          current: key.state === DigitState.current,
-          success: key.state === DigitState.success,
-          failed: key.state === DigitState.failed,
+          current: value.state === DigitState.current,
+          success: value.state === DigitState.success,
+          failed: value.state === DigitState.failed,
         }"
       >
-        {{ key.code.constructor === Array ? key.code[0] : key.code }}
+        {{ value.code.constructor === Array ? value.code[0] : value.code }}
       </li>
       <li class="key" :class="{ current: enterWaiting }">&crarr;</li>
     </ul>
     <ul class="digits-viewer__digits">
-      <li v-for="key in digitsLines[LineState.next]" class="key">
-        {{ key.code.constructor === Array ? key.code[0] : key.code }}
+      <li v-for="[key, value] in nextDigitsMap" class="key">
+        {{ value.code.constructor === Array ? value.code[0] : value.code }}
       </li>
       <li class="key">&crarr;</li>
     </ul>
@@ -66,7 +73,7 @@ const enterWaiting = ref(false);
     padding: 0
     .key
       display: inline-block
-      font-family: "Gill Sans", "Gill Sans MT", Calibri, "Trebuchet MS", sans-serif
+      font-family: Calibri, "Trebuchet MS", sans-serif
       border: 1px solid var(--color-border)
       background-color: var(--color-text)
       opacity: 0.6

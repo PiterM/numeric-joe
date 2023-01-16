@@ -18,132 +18,189 @@ export interface Digit {
   state: DigitState;
 }
 
+const availableDigits = [
+  {
+    code: "0",
+    state: DigitState.next,
+  },
+  {
+    code: "1",
+    state: DigitState.next,
+  },
+  {
+    code: "2",
+    state: DigitState.next,
+  },
+  {
+    code: "3",
+    state: DigitState.next,
+  },
+  {
+    code: "4",
+    state: DigitState.next,
+  },
+  {
+    code: "5",
+    state: DigitState.next,
+  },
+  {
+    code: "6",
+    state: DigitState.next,
+  },
+  {
+    code: "7",
+    state: DigitState.next,
+  },
+  {
+    code: "8",
+    state: DigitState.next,
+  },
+  {
+    code: "9",
+    state: DigitState.next,
+  },
+];
+
+const availableSigns = [
+  {
+    code: "/",
+    state: DigitState.next,
+  },
+  {
+    code: "*",
+    state: DigitState.next,
+  },
+  {
+    code: "-",
+    state: DigitState.next,
+  },
+  {
+    code: "+",
+    state: DigitState.next,
+  },
+  {
+    code: [".", ","],
+    state: DigitState.next,
+  },
+];
+
 export const useDigitsLines = defineStore("digitsLines", () => {
-  const digitsLines = ref({
-    [LineState.current]: getRandomDigitsLine(),
-    [LineState.next]: getRandomDigitsLine(),
-  });
+  const currentDigitsMap = ref(getRandomLine());
+  const nextDigitsMap = ref(getRandomLine());
 
   const currentKeyIndex = ref(0);
-  digitsLines.value[LineState.current][0].state = DigitState.current;
+  currentDigitsMap.value.set(0, {
+    ...currentDigitsMap.value.get(0),
+    state: DigitState.current,
+  });
 
-  function setCurrentKeyState(currentKeyCode: string) {
-    currentKeyIndex.value =
-      currentKeyIndex.value < 10 ? currentKeyIndex.value + 1 : 10;
+  function setCurrentKeyState(keyCode: string): boolean {
+    let result = true;
 
-    const currentDigitLine = digitsLines.value[LineState.current];
-
-    for (const key in currentDigitLine) {
-      if (currentDigitLine[key].state === DigitState.current) {
+    currentDigitsMap.value.forEach((value, key) => {
+      if (
+        currentKeyIndex.value < 10 &&
+        currentDigitsMap.value.get(currentKeyIndex.value).state ===
+          DigitState.current
+      ) {
         let currentKeyState = DigitState.failed;
         if (
-          (currentDigitLine[parseInt(key)].code.constructor === Array &&
-            currentDigitLine[parseInt(key)].code.includes(currentKeyCode)) ||
-          currentDigitLine[parseInt(key)].code === currentKeyCode
+          (currentDigitsMap.value.get(currentKeyIndex.value).code
+            .constructor === Array &&
+            currentDigitsMap.value
+              .get(currentKeyIndex.value)
+              .code.includes(keyCode)) ||
+          currentDigitsMap.value.get(currentKeyIndex.value).code === keyCode
         ) {
           currentKeyState = DigitState.success;
         }
 
-        currentDigitLine[parseInt(key)].state = currentKeyState;
+        currentDigitsMap.value.set(currentKeyIndex.value, {
+          ...currentDigitsMap.value.get(currentKeyIndex.value),
+          state: currentKeyState,
+        });
 
-        if (currentKeyIndex.value < 10) {
-          currentDigitLine[parseInt(key) + 1].state = DigitState.current;
-          return false;
+        if (currentKeyIndex.value < 9) {
+          currentDigitsMap.value.set(currentKeyIndex.value + 1, {
+            ...currentDigitsMap.value.get(currentKeyIndex.value + 1),
+            state: DigitState.current,
+          });
+          result = false;
         } else {
-          currentDigitLine[parseInt(key)].state = currentKeyState;
-          return true;
+          currentDigitsMap.value.set(currentKeyIndex.value, {
+            ...currentDigitsMap.value.get(currentKeyIndex.value),
+            state: currentKeyState,
+          });
         }
       }
-    }
+    });
+
+    currentKeyIndex.value =
+      currentKeyIndex.value < 10 ? currentKeyIndex.value + 1 : 10;
+
+    return result;
   }
 
   function refreshDigitsLines() {
-    if (currentKeyIndex.value === 10) {
-      if (isDigitsLineValid(digitsLines.value[LineState.current])) {
-        const audio = new Audio("mario-coin.wav");
-        audio.play();
-      }
+    currentKeyIndex.value = 0;
 
-      digitsLines.value[LineState.current] = getRandomDigitsLine();
-      digitsLines.value[LineState.current][0].state = DigitState.current;
-      digitsLines.value[LineState.next] = getRandomDigitsLine();
-      currentKeyIndex.value = 0;
-    }
+    currentDigitsMap.value = new Map([]);
+    nextDigitsMap.value.forEach((value, key) => {
+      currentDigitsMap.value.set(key, value);
+    });
+
+    currentDigitsMap.value.set(0, {
+      ...currentDigitsMap.value.get(0),
+      state: DigitState.current,
+    });
+
+    nextDigitsMap.value = getRandomLine();
   }
 
-  function isDigitsLineValid(line: Digit[]) {
-    for (const key of line) {
-      if (key.state === DigitState.failed) {
+  function refreshDigitsLinesWithSound() {
+    if (isDigitsLineValid(currentDigitsMap.value)) {
+      new Audio("mario-coin.wav").play();
+    }
+    refreshDigitsLines();
+  }
+
+  function isDigitsLineValid(line: any) {
+    for (let [key, value] of line) {
+      if (value.state === DigitState.failed) {
         return false;
       }
     }
     return true;
   }
 
-  function getRandomDigitsLine() {
-    const availableChars = [
-      {
-        code: "0",
-        state: DigitState.next,
-      },
-      {
-        code: "1",
-        state: DigitState.next,
-      },
-      {
-        code: "2",
-        state: DigitState.next,
-      },
-      {
-        code: "3",
-        state: DigitState.next,
-      },
-      {
-        code: "4",
-        state: DigitState.next,
-      },
-      {
-        code: "5",
-        state: DigitState.next,
-      },
-      {
-        code: "6",
-        state: DigitState.next,
-      },
-      {
-        code: "7",
-        state: DigitState.next,
-      },
-      {
-        code: "8",
-        state: DigitState.next,
-      },
-      {
-        code: "9",
-        state: DigitState.next,
-      },
-      {
-        code: "/",
-        state: DigitState.next,
-      },
-      {
-        code: "*",
-        state: DigitState.next,
-      },
-      {
-        code: "-",
-        state: DigitState.next,
-      },
-      {
-        code: "+",
-        state: DigitState.next,
-      },
-      {
-        code: [",", "."],
-        state: DigitState.next,
-      },
-    ];
-    return shuffle(availableChars).slice(0, 10);
+  function getRandomLine() {
+    let digits = [];
+    let signs = [];
+    let line = [];
+
+    const onlyDigits = Boolean(Math.floor(Math.random() * 2));
+
+    for (let i = 0; i < (onlyDigits ? 10 : 7); i++) {
+      const digit = shuffle(availableDigits)[0];
+      digits.push(digit);
+    }
+
+    if (onlyDigits) {
+      signs = [];
+    } else {
+      for (let j = 0; j < 3; j++) {
+        const sign = shuffle(availableSigns)[0];
+        signs.push(sign);
+      }
+    }
+
+    const lineMap = new Map();
+    line = shuffle([...digits, ...signs]);
+    for (let k = 0; k < 10; k++) {
+      lineMap.set(k, line[k]);
+    }
+
+    return lineMap;
   }
 
   function shuffle(array: Digit[]) {
@@ -163,5 +220,11 @@ export const useDigitsLines = defineStore("digitsLines", () => {
     return array;
   }
 
-  return { digitsLines, setCurrentKeyState, refreshDigitsLines };
+  return {
+    currentDigitsMap,
+    nextDigitsMap,
+    setCurrentKeyState,
+    refreshDigitsLines,
+    refreshDigitsLinesWithSound,
+  };
 });
