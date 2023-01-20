@@ -141,6 +141,28 @@ export const useDigitsLines = defineStore("digitsLines", () => {
     return result;
   }
 
+  function setPreviousKeyState(enterWaiting: boolean) {
+    if (currentKeyIndex.value === 0) {
+      return;
+    }
+    currentKeyIndex.value -= 1;
+
+    currentDigitsMap.value.forEach((value, key) => {
+      if (currentKeyIndex.value >= 0 && currentKeyIndex.value <= 10) {
+        currentDigitsMap.value.set(currentKeyIndex.value, {
+          ...currentDigitsMap.value.get(currentKeyIndex.value),
+          state: DigitState.current,
+        });
+        if (!enterWaiting) {
+          currentDigitsMap.value.set(currentKeyIndex.value + 1, {
+            ...currentDigitsMap.value.get(currentKeyIndex.value + 1),
+            state: DigitState.next,
+          });
+        }
+      }
+    });
+  }
+
   function refreshDigitsLines() {
     currentKeyIndex.value = 0;
 
@@ -224,6 +246,7 @@ export const useDigitsLines = defineStore("digitsLines", () => {
     currentDigitsMap,
     nextDigitsMap,
     setCurrentKeyState,
+    setPreviousKeyState,
     refreshDigitsLines,
     refreshDigitsLinesWithSound,
   };

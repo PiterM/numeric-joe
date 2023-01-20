@@ -3,25 +3,36 @@ import { ref, computed } from "vue";
 import { useDigitsLines, DigitState } from "@/stores/digitsLines";
 
 const digitsStore = useDigitsLines();
-const { setCurrentKeyState, refreshDigitsLines, refreshDigitsLinesWithSound } =
-  digitsStore;
+const {
+  setCurrentKeyState,
+  setPreviousKeyState,
+  refreshDigitsLines,
+  refreshDigitsLinesWithSound,
+} = digitsStore;
 
 const currentDigitsMap = computed(() => digitsStore.currentDigitsMap);
 const nextDigitsMap = computed(() => digitsStore.nextDigitsMap);
 
 const enterWaiting = ref(false);
 
-(window as any).addEventListener("keypress", (e: KeyboardEvent) => {
-  if (e.key === "Enter" && enterWaiting.value === true) {
-    enterWaiting.value = false;
-    refreshDigitsLinesWithSound();
-    return;
-  }
-
-  if (e.key === "q") {
-    enterWaiting.value = false;
-    refreshDigitsLines();
-    return;
+(window as any).addEventListener("keydown", (e: KeyboardEvent) => {
+  switch (e.key) {
+    case "Enter":
+      if (enterWaiting.value === true) {
+        enterWaiting.value = false;
+        refreshDigitsLinesWithSound();
+        return;
+      }
+      break;
+    case "Backspace":
+      setPreviousKeyState(enterWaiting.value);
+      enterWaiting.value = false;
+      return;
+    case "ArrowUp":
+      enterWaiting.value = false;
+      refreshDigitsLines();
+      return;
+    default:
   }
 
   if (setCurrentKeyState(e.key)) {
@@ -33,7 +44,7 @@ const enterWaiting = ref(false);
 <template>
   <div class="digits-viewer">
     <div class="digits-viewer__title">
-      <h3>Keys to press (press Q to skip a line)</h3>
+      <h3>Keys to press</h3>
       <hr />
     </div>
     <ul class="digits-viewer__digits current-line">
